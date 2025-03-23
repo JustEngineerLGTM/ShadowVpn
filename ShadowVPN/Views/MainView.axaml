@@ -3,14 +3,42 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:ShadowVPN.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="800"
              x:Class="ShadowVPN.Views.MainView"
              x:DataType="vm:MainViewModel">
-  <Design.DataContext>
-    <!-- This only sets the DataContext for the previewer in an IDE,
-         to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+  <UserControl.DataContext>
     <vm:MainViewModel />
-  </Design.DataContext>
-
-  <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+  </UserControl.DataContext>
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto,*" Margin="20">
+    <!-- Заголовок --> 
+    
+    <TextBlock Grid.Row="0" Grid.Column="1" 
+               Text="ShadowVPN Manager" FontSize="24" FontWeight="Bold"
+               HorizontalAlignment="Center"/>
+    <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" >
+    <TextBlock  Text="Имя пользователя:" VerticalAlignment="Center"/>
+    <TextBox 
+             Text="{Binding ClientUsername, Mode=TwoWay}" Watermark="Введите имя пользователя"/>
+    </StackPanel>
+    <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" >
+    <!-- Кнопка генерации конфигурации -->    
+    <Button Grid.Row="2" Grid.Column="1"
+            Content="Генерировать конфигурацию" Command="{Binding GenerateConfigCommand}" Margin="0,10"/>
+    </StackPanel>
+    <!-- Кнопки подключения/отключения -->    
+    <StackPanel Grid.Row="3" Grid.Column="1" 
+                Orientation="Horizontal" HorizontalAlignment="Center">
+      <Button Content="Подключиться" Command="{Binding ConnectCommand}" Width="150" Margin="0,0,10,0"/>
+      <Button Content="Отключиться" Command="{Binding DisconnectCommand}" Width="150"/>
+    </StackPanel>
+    
+    <!-- Текстовое сообщение об успехе/ошибке -->    
+    <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3"
+               Text="{Binding StatusMessage}"
+               Foreground="Red"
+               FontWeight="Bold"
+               HorizontalAlignment="Center"
+               IsVisible="{Binding IsStatusVisible}"
+               Margin="0,10,0,0"/>
+  </Grid>
 </UserControl>

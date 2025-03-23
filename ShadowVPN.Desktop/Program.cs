@@ -6,14 +6,15 @@ namespace ShadowVPN.Desktop;
 
 sealed class Program
 {
-    // Initialization code. Don't use any Avalonia, third-party APIs or any
-    // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
-    // yet and stuff might break.
     [STAThread]
-    public static void Main(string[] args) => BuildAvaloniaApp()
-        .StartWithClassicDesktopLifetime(args);
+    public static void Main(string[] args)
+    {
+        // Устанавливаем кодировку вывода в консоль для корректного отображения UTF-8
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-    // Avalonia configuration, don't remove; also used by visual designer.
+        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    }
+
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
