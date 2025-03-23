@@ -9,14 +9,4 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
     }
-
-    private void ConnectToVpn(object? sender, RoutedEventArgs e)
-    {
-        throw new System.NotImplementedException();
-    }
-
-    private void DisconnectVpn(object? sender, RoutedEventArgs e)
-    {
-        throw new System.NotImplementedException();
-    }
 }
