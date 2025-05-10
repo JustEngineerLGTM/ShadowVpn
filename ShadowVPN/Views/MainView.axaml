@@ -10,22 +10,22 @@
     <UserControl.DataContext>
         <vm:MainViewModel />
     </UserControl.DataContext>
-  
+
     <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto,*" Margin="20">
-        <!-- Заголовок --> 
-        <TextBlock Grid.Row="0" Grid.Column="1" 
+        <!-- Заголовок -->
+        <TextBlock Grid.Row="0" Grid.Column="1"
                    Text="ShadowVPN Manager" FontSize="24" FontWeight="Bold"
                    HorizontalAlignment="Center" />
-
+        <!-- Поле ввода имени пользователя -->
         <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
             <TextBlock Text="Имя пользователя:" VerticalAlignment="Center" />
             <TextBox Text="{Binding ClientUsername, Mode=TwoWay}" Watermark="Введите имя пользователя" />
         </StackPanel>
-
+        <!-- Кнопка генерации конфига -->
         <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
             <Button Content="Генерировать конфигурацию" Command="{Binding GenerateConfigCommand}" Margin="0,10" />
         </StackPanel>
-        
+        <!-- Офигенная кнопка подключения/отключения -->
         <Button Grid.Row="3" Grid.Column="1"
                 Command="{Binding ToggleConnectionCommand}"
                 Height="200" Width="200"
@@ -34,7 +34,8 @@
                 HorizontalAlignment="Center" VerticalAlignment="Center"
                 CornerRadius="200" Margin="0,0,10,0">
             <Button.Content>
-                <TextBlock Text="{Binding ButtonText}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" />
+                <TextBlock Text="{Binding ButtonText}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Foreground="White" />
             </Button.Content>
         </Button>
     </Grid>

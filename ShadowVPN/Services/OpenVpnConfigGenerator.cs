@@ -10,6 +10,7 @@ public static class OpenVpnConfigGenerator
 {
     private static readonly HttpClient HttpClient = new HttpClient();
 
+    // Получение конфига и создание его на клиенте
     public static async Task GenerateClientConfigAsync(string username)
     {
         var apiUrl = $"http://109.120.132.39:5000/getvpnconfig?username={username}";
@@ -50,76 +51,69 @@ public static class OpenVpnConfigGenerator
         }
     }
 
+    // Форматирование полученных данных в конфиг
     private static string FormatConfig(string configData)
     {
-        // First, handle the JSON string format if needed
         if (configData.StartsWith("\"") && configData.EndsWith("\""))
         {
             configData = configData.Substring(1, configData.Length - 2);
         }
 
-        // Replace all escaped newlines with actual newlines
         configData = configData.Replace("\\n", "\n");
 
-        // Extract the certificate sections
         var caCert = ExtractCertificate(configData, "ca");
         var cert = ExtractCertificate(configData, "cert");
         var key = ExtractCertificate(configData, "key");
         var tlsAuth = ExtractTlsAuthKey(configData);
 
-        // Aggressively clean all certificate data
         caCert = AggressiveCleanCertificate(caCert);
         cert = AggressiveCleanCertificate(cert);
         key = AggressiveCleanCertificate(key);
         tlsAuth = AggressiveCleanCertificate(tlsAuth);
 
-        // Template for the final configuration
         var template =
             $"""
-            client
-            dev tun
-            proto udp
-            remote 109.120.132.39 1194
-            resolv-retry infinite
-            nobind
-            persist-key
-            persist-tun
+             client
+             dev tun
+             proto udp
+             remote 109.120.132.39 1194
+             resolv-retry infinite
+             nobind
+             persist-key
+             persist-tun
 
-            <ca>
-            {caCert}
-            </ca>
+             <ca>
+             {caCert}
+             </ca>
 
-            <cert>
-            {cert}
-            </cert>
+             <cert>
+             {cert}
+             </cert>
 
-            <key>
-            {key}
-            </key>
+             <key>
+             {key}
+             </key>
 
-            <tls-auth>
-            {tlsAuth}
-            </tls-auth>
-            remote-cert-tls server
-            data-ciphers AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305
-            cipher AES-256-CBC
-            key-direction 1
-            auth SHA256
-            verb 3
-            """;
+             <tls-auth>
+             {tlsAuth}
+             </tls-auth>
+             remote-cert-tls server
+             data-ciphers AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305
+             cipher AES-256-CBC
+             key-direction 1
+             auth SHA256
+             verb 3
+             """;
 
-        // Format the configuration with clean certificate data
         return template;
     }
 
-// New method for aggressive certificate cleaning
+    // Удаление переносов из файла
     private static string AggressiveCleanCertificate(string certData)
     {
-        // Handle both visible \r characters and actual CR characters
         certData = certData.Replace("\\r", "");
         certData = certData.Replace("\r", "");
 
-        // Split by newlines, trim each line, and rejoin with proper line endings
         var lines = certData.Split('\n')
             .Select(line => line.Trim())
             .Where(line => !string.IsNullOrWhiteSpace(line))
@@ -128,6 +122,7 @@ public static class OpenVpnConfigGenerator
         return string.Join(Environment.NewLine, lines);
     }
 
+    // Извлечение сертификата
     private static string ExtractCertificate(string configData, string certName)
     {
         var startTag = $"<{certName}>";
@@ -148,6 +143,7 @@ public static class OpenVpnConfigGenerator
         return string.Empty;
     }
 
+    // Извлечение ключа TLS
     private static string ExtractTlsAuthKey(string configData)
     {
         var startTag = "<tls-auth>";

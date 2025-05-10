@@ -6,8 +6,10 @@ namespace ShadowVPN.Services;
 public class OpenVpnManager
 {
     private Process? _vpnProcess;
+
     public event Action<string>? OnOutputDataReceived;
 
+    // Запускаем дочерний процесс openvpn с аргументом сгенерированного конфига
     public void Connect(string configPath)
     {
         if (_vpnProcess != null)
@@ -23,9 +25,9 @@ public class OpenVpnManager
                 Arguments = $"--config \"{configPath}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-                UseShellExecute = false, 
+                UseShellExecute = false,
                 CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden 
+                WindowStyle = ProcessWindowStyle.Hidden
             }
         };
 
@@ -66,12 +68,22 @@ public class OpenVpnManager
         }
     }
 
+    // Убиваем все дерево процессов, а так же дочерний процесс openvpn,
+    // потому что он не хочет диспозиться вместе с родительским элементом:)
     public void Disconnect()
     {
-        if (_vpnProcess is { HasExited: false })
+        foreach (var process in Process.GetProcessesByName("openvpn"))
         {
-            _vpnProcess.Kill();
+            try
+            {
+                process.Kill();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Ошибка закрытия OpenVPN: {ex.Message}");
+            }
         }
+
         _vpnProcess = null;
     }
 }
