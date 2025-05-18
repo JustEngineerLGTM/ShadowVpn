@@ -11,6 +11,7 @@
     <UserControl.DataContext>
         <vm:MainViewModel />
     </UserControl.DataContext>
+
     <dialogHostAvalonia:DialogHost
         IsOpen="{Binding #SettingsButton.IsChecked}">
         <dialogHostAvalonia:DialogHost.DialogContent>
@@ -47,17 +48,17 @@
             <TextBlock Grid.Row="0" Grid.Column="1"
                        Text="ShadowVPN" FontSize="24" FontWeight="Bold"
                        HorizontalAlignment="Center" />
-
             <!-- Кнопка Настройки VPN -->
             <ToggleButton x:Name="SettingsButton" Grid.Row="1" Grid.Column="1"
                           Content="Настройки VPN"
+                          IsEnabled="{Binding ConnectionStatus,ConverterParameter=Disconnected,Converter={x:Static ObjectConverters.NotEqual}}"
                           HorizontalAlignment="Center">
-            </ToggleButton>
 
+            </ToggleButton>
             <!-- Крутая кнопка подключения -->
             <Button Grid.Row="2" Grid.Column="1"
-                    Classes.disconnected="{Binding !IsConnected}"
-                    Classes.connected="{Binding IsConnected}"
+                    Classes.disconnected="{Binding ConnectionStatus,ConverterParameter=Disconnected,Converter={x:Static ObjectConverters.Equal}}"
+                    Classes.connected="{Binding ConnectionStatus,ConverterParameter=Connected,Converter={x:Static ObjectConverters.Equal}}"
                     Command="{Binding ToggleConnectionCommand}"
                     Height="200" Width="200"
                     Background="Transparent"
