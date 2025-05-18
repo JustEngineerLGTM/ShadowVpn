@@ -51,26 +51,54 @@
             <!-- Кнопка Настройки VPN -->
             <ToggleButton x:Name="SettingsButton" Grid.Row="1" Grid.Column="1"
                           Content="Настройки VPN"
-                          IsEnabled="{Binding ConnectionStatus,ConverterParameter=Disconnected,Converter={x:Static ObjectConverters.NotEqual}}"
                           HorizontalAlignment="Center">
-
+                <ToggleButton.IsEnabled>
+                    <Binding Path="ConnectionStatus" Converter="{x:Static ObjectConverters.Equal}">
+                        <Binding.ConverterParameter>
+                            <vm:ConnectionStatus>Disconnected</vm:ConnectionStatus>
+                        </Binding.ConverterParameter>
+                    </Binding>
+                </ToggleButton.IsEnabled>
             </ToggleButton>
             <!-- Крутая кнопка подключения -->
             <Button Grid.Row="2" Grid.Column="1"
-                    Classes.disconnected="{Binding ConnectionStatus,ConverterParameter=Disconnected,Converter={x:Static ObjectConverters.Equal}}"
-                    Classes.connected="{Binding ConnectionStatus,ConverterParameter=Connected,Converter={x:Static ObjectConverters.Equal}}"
                     Command="{Binding ToggleConnectionCommand}"
                     Height="200" Width="200"
                     Background="Transparent"
                     HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                     CornerRadius="100"
                     Margin="0,20,0,0">
+                <Classes.connected>
+                    <Binding Path="ConnectionStatus" Converter="{x:Static ObjectConverters.Equal}">
+                        <Binding.ConverterParameter>
+                            <vm:ConnectionStatus>Connected</vm:ConnectionStatus>
+                        </Binding.ConverterParameter>
+                    </Binding>
+                </Classes.connected>
+                <Classes.connecting>
+                    <Binding Path="ConnectionStatus" Converter="{x:Static ObjectConverters.Equal}">
+                        <Binding.ConverterParameter>
+                            <vm:ConnectionStatus>Connecting</vm:ConnectionStatus>
+                        </Binding.ConverterParameter>
+                    </Binding>
+                </Classes.connecting>
+                <Classes.diconnected>
+                    <Binding Path="ConnectionStatus" Converter="{x:Static ObjectConverters.Equal}">
+                        <Binding.ConverterParameter>
+                            <vm:ConnectionStatus>Disconnected</vm:ConnectionStatus>
+                        </Binding.ConverterParameter>
+                    </Binding>
+                </Classes.diconnected>
                 <Button.Styles>
                     <Style Selector="Button.connected">
                         <Setter Property="BorderBrush" Value="Green"></Setter>
                         <Setter Property="Content" Value="Подключено"></Setter>
                     </Style>
-                    <Style Selector="Button.disconnected">
+                    <Style Selector="Button.connecting">
+                        <Setter Property="BorderBrush" Value="DeepSkyBlue"></Setter>
+                        <Setter Property="Content" Value="Подключение"></Setter>
+                    </Style>
+                    <Style Selector="Button.diconnected">
                         <Setter Property="BorderBrush" Value="Gray"></Setter>
                         <Setter Property="Content" Value="Отключено"></Setter>
                     </Style>
