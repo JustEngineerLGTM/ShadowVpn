@@ -12,7 +12,6 @@
         <vm:MainViewModel />
     </UserControl.DataContext>
     <dialogHostAvalonia:DialogHost
-        CloseOnClickAway="True"
         IsOpen="{Binding #SettingsButton.IsChecked}">
         <dialogHostAvalonia:DialogHost.DialogContent>
             <StackPanel Width="300" Margin="10">

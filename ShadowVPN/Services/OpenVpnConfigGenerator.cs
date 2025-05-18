@@ -13,7 +13,7 @@ public static class OpenVpnConfigGenerator
 {
     private static readonly HttpClient HttpClient = new();
 
-    public static async Task<(bool success, string status)> CreateAndFetchConfigAsync(string serverIp, string username, string password)
+    public static async Task<(bool success, string? status)> CreateAndFetchConfigAsync(string serverIp, string username, string password)
     {
         try
         {
