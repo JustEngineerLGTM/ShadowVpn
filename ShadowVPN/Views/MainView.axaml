@@ -50,23 +50,30 @@
 
             <!-- Кнопка Настройки VPN -->
             <ToggleButton x:Name="SettingsButton" Grid.Row="1" Grid.Column="1"
-                    Content="Настройки VPN"
-                    HorizontalAlignment="Center">
+                          Content="Настройки VPN"
+                          HorizontalAlignment="Center">
             </ToggleButton>
 
             <!-- Крутая кнопка подключения -->
             <Button Grid.Row="2" Grid.Column="1"
+                    Classes.disconnected="{Binding !IsConnected}"
+                    Classes.connected="{Binding IsConnected}"
                     Command="{Binding ToggleConnectionCommand}"
                     Height="200" Width="200"
-                    BorderBrush="{Binding ButtonBorderBrush}" BorderThickness="2"
                     Background="Transparent"
-                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                     CornerRadius="100"
                     Margin="0,20,0,0">
-                <TextBlock Text="{Binding ButtonText}"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           Foreground="White" />
+                <Button.Styles>
+                    <Style Selector="Button.connected">
+                        <Setter Property="BorderBrush" Value="Green"></Setter>
+                        <Setter Property="Content" Value="Подключено"></Setter>
+                    </Style>
+                    <Style Selector="Button.disconnected">
+                        <Setter Property="BorderBrush" Value="Gray"></Setter>
+                        <Setter Property="Content" Value="Отключено"></Setter>
+                    </Style>
+                </Button.Styles>
             </Button>
         </Grid>
     </dialogHostAvalonia:DialogHost>
