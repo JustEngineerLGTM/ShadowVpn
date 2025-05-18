@@ -3,40 +3,72 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:ShadowVPN.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="800"
+             xmlns:dialogHostAvalonia="clr-namespace:DialogHostAvalonia;assembly=DialogHost.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="500"
              x:Class="ShadowVPN.Views.MainView"
              x:DataType="vm:MainViewModel">
 
     <UserControl.DataContext>
         <vm:MainViewModel />
     </UserControl.DataContext>
+    <dialogHostAvalonia:DialogHost
+        CloseOnClickAway="True"
+        IsOpen="{Binding #SettingsButton.IsChecked}">
+        <dialogHostAvalonia:DialogHost.DialogContent>
+            <StackPanel Width="300" Margin="10">
+                <TextBlock Text="IP сервера:" />
+                <TextBox Text="{Binding ServerIp, Mode=TwoWay}" Watermark="Ip сервера" />
 
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto,*" Margin="20">
-        <!-- Заголовок -->
-        <TextBlock Grid.Row="0" Grid.Column="1"
-                   Text="ShadowVPN Manager" FontSize="24" FontWeight="Bold"
-                   HorizontalAlignment="Center" />
-        <!-- Поле ввода имени пользователя -->
-        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
-            <TextBlock Text="Имя пользователя:" VerticalAlignment="Center" />
-            <TextBox Text="{Binding ClientUsername, Mode=TwoWay}" Watermark="Введите имя пользователя" />
-        </StackPanel>
-        <!-- Кнопка генерации конфига -->
-        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
-            <Button Content="Генерировать конфигурацию" Command="{Binding GenerateConfigCommand}" Margin="0,10" />
-        </StackPanel>
-        <!-- Офигенная кнопка подключения/отключения -->
-        <Button Grid.Row="3" Grid.Column="1"
-                Command="{Binding ToggleConnectionCommand}"
-                Height="200" Width="200"
-                BorderBrush="{Binding ButtonBorderBrush}" BorderThickness="2"
-                Background="{Binding ButtonBackgroundBrush}"
-                HorizontalAlignment="Center" VerticalAlignment="Center"
-                CornerRadius="200" Margin="0,0,10,0">
-            <Button.Content>
-                <TextBlock Text="{Binding ButtonText}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                <TextBlock Text="Имя пользователя:" Margin="0,10,0,0" />
+                <TextBox Text="{Binding VpnUsername, Mode=TwoWay}" Watermark="Имя пользователя" />
+
+                <TextBlock Text="Пароль:" Margin="0,10,0,0" />
+                <TextBox Text="{Binding VpnPassword, Mode=TwoWay}" Watermark="Пароль" />
+
+                <Button Content="Сохранить"
+                        Command="{Binding SaveSettingsCommand}"
+                        Margin="0,15,0,0"
+                        HorizontalAlignment="Right" />
+
+                <!-- Состояние -->
+                <TextBlock Text="{Binding StatusMessage}"
+                           Foreground="White"
+                           Background="Black"
+                           Padding="10"
+                           Margin="0,10,0,0"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Center"
+                           IsVisible="{Binding IsStatusVisible}" />
+            </StackPanel>
+        </dialogHostAvalonia:DialogHost.DialogContent>
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,*"
+              ColumnDefinitions="*,Auto,*"
+              Margin="20">
+            <!-- Заголовок -->
+            <TextBlock Grid.Row="0" Grid.Column="1"
+                       Text="ShadowVPN" FontSize="24" FontWeight="Bold"
+                       HorizontalAlignment="Center" />
+
+            <!-- Кнопка Настройки VPN -->
+            <ToggleButton x:Name="SettingsButton" Grid.Row="1" Grid.Column="1"
+                    Content="Настройки VPN"
+                    HorizontalAlignment="Center">
+            </ToggleButton>
+
+            <!-- Крутая кнопка подключения -->
+            <Button Grid.Row="2" Grid.Column="1"
+                    Command="{Binding ToggleConnectionCommand}"
+                    Height="200" Width="200"
+                    BorderBrush="{Binding ButtonBorderBrush}" BorderThickness="2"
+                    Background="Transparent"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    CornerRadius="100"
+                    Margin="0,20,0,0">
+                <TextBlock Text="{Binding ButtonText}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
                            Foreground="White" />
-            </Button.Content>
-        </Button>
-    </Grid>
+            </Button>
+        </Grid>
+    </dialogHostAvalonia:DialogHost>
 </UserControl>

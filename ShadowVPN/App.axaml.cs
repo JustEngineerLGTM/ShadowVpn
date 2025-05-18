@@ -21,7 +21,7 @@ public partial class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         _vpnManager = new OpenVpnManager();
-        _mainViewModel = new MainViewModel(_vpnManager);
+        _mainViewModel = new MainViewModel();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {

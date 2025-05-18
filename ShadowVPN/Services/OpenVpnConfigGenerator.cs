@@ -1,166 +1,136 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace ShadowVPN.Services;
 
 public static class OpenVpnConfigGenerator
 {
-    private static readonly HttpClient HttpClient = new HttpClient();
+    private static readonly HttpClient HttpClient = new();
 
-    // Получение конфига и создание его на клиенте
-    public static async Task GenerateClientConfigAsync(string username)
+    public static async Task<(bool success, string status)> CreateAndFetchConfigAsync(string serverIp, string username, string password)
     {
-        var apiUrl = $"http://109.120.132.39:5000/getvpnconfig?username={username}";
-        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var configDirectory = Path.Combine(userProfile, "OpenVPN", "config");
-        var configFilePath = Path.Combine(configDirectory, "client.ovpn");
-
         try
         {
-            if (!Directory.Exists(configDirectory))
-            {
-                Directory.CreateDirectory(configDirectory);
-            }
+            using var sha256 = SHA256.Create();
+            var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            var hash = Convert.ToHexString(hashBytes).ToLowerInvariant();
+            var raw = $"{username}={hash}";
+            var escapedRaw = Uri.EscapeDataString(raw);
 
-            var request = new HttpRequestMessage(HttpMethod.Get, apiUrl);
-            request.Headers.Add("Accept", "*/*");
+            var createUri = $"http://{serverIp}:5000/createvpnuser?raw={escapedRaw}";
+            var createRes = await HttpClient.PostAsync(createUri, null);
+            if (!createRes.IsSuccessStatusCode)
+                return (false, $"Пользователь уже существует или ошибка ({createRes.StatusCode})");
 
-            var response = await HttpClient.SendAsync(request);
-            response.EnsureSuccessStatusCode();
+            var getUri = $"http://{serverIp}:5000/getvpnconfig?raw={escapedRaw}";
+            var getRes = await HttpClient.GetAsync(getUri);
+            getRes.EnsureSuccessStatusCode();
 
-            var configData = await response.Content.ReadAsStringAsync();
+            var rawConfig = await getRes.Content.ReadAsStringAsync();
+            var formattedConfig = FormatConfig(rawConfig);
+            SaveToFile(formattedConfig);
 
-            // Парсинг и подготовка данных
-            var formattedConfig = FormatConfig(configData);
-
-            // Сохранение отформатированного конфигурационного файла
-            await File.WriteAllTextAsync(configFilePath, formattedConfig);
-
-            Console.WriteLine($"Конфигурационный файл создан: {configFilePath}");
+            return (true, "Конфигурация успешно создана и сохранена.");
         }
-        catch (HttpRequestException httpEx)
+        catch (HttpRequestException ex)
         {
-            Console.WriteLine($"Ошибка при запросе: {httpEx.Message}");
+            return (false, $"Сетевая ошибка: {ex.Message} {serverIp}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка: {ex.Message}");
+            return (false, $"Ошибка: {ex.Message}");
         }
     }
 
-    // Форматирование полученных данных в конфиг
+
+    private static string ComputeHash(string password)
+    {
+        using var sha256 = SHA256.Create();
+        var bytes = Encoding.UTF8.GetBytes(password);
+        return Convert.ToHexString(sha256.ComputeHash(bytes)).ToLowerInvariant();
+    }
+
+    private static void SaveToFile(string config)
+    {
+        var path = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "OpenVPN", "config", "client.ovpn");
+
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, config, Encoding.UTF8);
+    }
+
     private static string FormatConfig(string configData)
     {
-        if (configData.StartsWith("\"") && configData.EndsWith("\""))
-        {
-            configData = configData.Substring(1, configData.Length - 2);
-        }
+        configData = configData.Trim('"').Replace("\\n", "\n");
 
-        configData = configData.Replace("\\n", "\n");
+        var caCert = Clean(Extract(configData, "ca"));
+        var cert = Clean(Extract(configData, "cert"));
+        var key = Clean(Extract(configData, "key"));
+        var tlsAuth = Clean(Extract(configData, "tls-auth"));
 
-        var caCert = ExtractCertificate(configData, "ca");
-        var cert = ExtractCertificate(configData, "cert");
-        var key = ExtractCertificate(configData, "key");
-        var tlsAuth = ExtractTlsAuthKey(configData);
+        return $"""
+                client
+                dev tun
+                proto udp
+                remote 109.120.132.39 1194
+                resolv-retry infinite
+                nobind
+                persist-key
+                persist-tun
 
-        caCert = AggressiveCleanCertificate(caCert);
-        cert = AggressiveCleanCertificate(cert);
-        key = AggressiveCleanCertificate(key);
-        tlsAuth = AggressiveCleanCertificate(tlsAuth);
+                <ca>
+                {caCert}
+                </ca>
 
-        var template =
-            $"""
-             client
-             dev tun
-             proto udp
-             remote 109.120.132.39 1194
-             resolv-retry infinite
-             nobind
-             persist-key
-             persist-tun
+                <cert>
+                {cert}
+                </cert>
 
-             <ca>
-             {caCert}
-             </ca>
+                <key>
+                {key}
+                </key>
 
-             <cert>
-             {cert}
-             </cert>
+                <tls-auth>
+                {tlsAuth}
+                </tls-auth>
 
-             <key>
-             {key}
-             </key>
-
-             <tls-auth>
-             {tlsAuth}
-             </tls-auth>
-             remote-cert-tls server
-             data-ciphers AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305
-             cipher AES-256-CBC
-             key-direction 1
-             auth SHA256
-             verb 3
-             """;
-
-        return template;
+                remote-cert-tls server
+                data-ciphers AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305
+                cipher AES-256-CBC
+                key-direction 1
+                auth SHA256
+                verb 3
+                """;
     }
 
-    // Удаление переносов из файла
-    private static string AggressiveCleanCertificate(string certData)
+    private static string Extract(string data, string tag)
     {
-        certData = certData.Replace("\\r", "");
-        certData = certData.Replace("\r", "");
+        var start = $"<{tag}>";
+        var end = $"</{tag}>";
+        var i1 = data.IndexOf(start, StringComparison.Ordinal);
+        var i2 = data.IndexOf(end, StringComparison.Ordinal);
 
-        var lines = certData.Split('\n')
-            .Select(line => line.Trim())
-            .Where(line => !string.IsNullOrWhiteSpace(line))
-            .ToArray();
-
-        return string.Join(Environment.NewLine, lines);
+        return (i1 >= 0 && i2 > i1)
+            ? data[(i1 + start.Length)..i2].Trim()
+            : string.Empty;
     }
 
-    // Извлечение сертификата
-    private static string ExtractCertificate(string configData, string certName)
+    private static string Clean(string input)
     {
-        var startTag = $"<{certName}>";
-        var endTag = $"</{certName}>";
-        var startIndex = configData.IndexOf(startTag, StringComparison.Ordinal);
-
-        if (startIndex < 0)
-            return string.Empty;
-
-        startIndex += startTag.Length;
-        var endIndex = configData.IndexOf(endTag, startIndex, StringComparison.Ordinal);
-
-        if (startIndex > -1 && endIndex > -1)
-        {
-            return configData.Substring(startIndex, endIndex - startIndex).Trim();
-        }
-
-        return string.Empty;
-    }
-
-    // Извлечение ключа TLS
-    private static string ExtractTlsAuthKey(string configData)
-    {
-        var startTag = "<tls-auth>";
-        var endTag = "</tls-auth>";
-        var startIndex = configData.IndexOf(startTag, StringComparison.Ordinal);
-
-        if (startIndex < 0)
-            return string.Empty;
-
-        startIndex += startTag.Length;
-        var endIndex = configData.IndexOf(endTag, startIndex, StringComparison.Ordinal);
-
-        if (startIndex > -1 && endIndex > -1)
-        {
-            return configData.Substring(startIndex, endIndex - startIndex).Trim();
-        }
-
-        return string.Empty;
+        return string.Join(
+            Environment.NewLine,
+            input.Replace("\\r", "")
+                .Replace("\r", "")
+                .Split('\n')
+                .Select(l => l.Trim())
+                .Where(l => !string.IsNullOrWhiteSpace(l))
+        );
     }
 }

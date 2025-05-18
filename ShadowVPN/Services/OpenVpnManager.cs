@@ -16,7 +16,7 @@ public class OpenVpnManager
         {
             Disconnect();
         }
-
+        
         _vpnProcess = new Process
         {
             StartInfo = new ProcessStartInfo
@@ -31,23 +31,19 @@ public class OpenVpnManager
             }
         };
 
-
+       
         _vpnProcess.OutputDataReceived += (_, e) =>
         {
-            if (!string.IsNullOrEmpty(e.Data))
-            {
-                Debug.WriteLine($"VPN Output: {e.Data}");
-                OnOutputDataReceived?.Invoke(e.Data);
-            }
+            if (string.IsNullOrEmpty(e.Data)) return;
+            Debug.WriteLine($"VPN Output: {e.Data}");
+            OnOutputDataReceived?.Invoke(e.Data);
         };
 
         _vpnProcess.ErrorDataReceived += (_, e) =>
         {
-            if (!string.IsNullOrEmpty(e.Data))
-            {
-                Debug.WriteLine($"VPN Error: {e.Data}");
-                OnOutputDataReceived?.Invoke(e.Data);
-            }
+            if (string.IsNullOrEmpty(e.Data)) return;
+            Debug.WriteLine($"VPN Error: {e.Data}");
+            OnOutputDataReceived?.Invoke(e.Data);
         };
 
         try
