@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
 
 namespace ShadowVPN.Services;
 
@@ -9,63 +11,50 @@ public class OpenVpnManager
 
     public event Action<string>? OnOutputDataReceived;
 
-    // Запускаем дочерний процесс openvpn с аргументом сгенерированного конфига
     public void Connect(string configPath)
     {
         if (_vpnProcess != null)
-        {
             Disconnect();
-        }
-        
+
+        var openVpnPath = GetOpenVpnExecutablePath();
+
         _vpnProcess = new Process
         {
             StartInfo = new ProcessStartInfo
             {
-                FileName = @"C:\Program Files\OpenVPN\bin\openvpn.exe",
+                FileName = openVpnPath,
                 Arguments = $"--config \"{configPath}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
-                CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden
+                CreateNoWindow = true
             }
         };
 
-       
         _vpnProcess.OutputDataReceived += (_, e) =>
         {
-            if (string.IsNullOrEmpty(e.Data)) return;
-            Debug.WriteLine($"VPN Output: {e.Data}");
-            OnOutputDataReceived?.Invoke(e.Data);
+            if (!string.IsNullOrEmpty(e.Data))
+                OnOutputDataReceived?.Invoke(e.Data);
         };
 
         _vpnProcess.ErrorDataReceived += (_, e) =>
         {
-            if (string.IsNullOrEmpty(e.Data)) return;
-            Debug.WriteLine($"VPN Error: {e.Data}");
-            OnOutputDataReceived?.Invoke(e.Data);
+            if (!string.IsNullOrEmpty(e.Data))
+                OnOutputDataReceived?.Invoke(e.Data);
         };
 
         try
         {
-            if (_vpnProcess.Start())
-            {
-                _vpnProcess.BeginOutputReadLine();
-                _vpnProcess.BeginErrorReadLine();
-            }
-            else
-            {
-                Debug.WriteLine("Ошибка: OpenVPN не запустился.");
-            }
+            if (!_vpnProcess.Start()) return;
+            _vpnProcess.BeginOutputReadLine();
+            _vpnProcess.BeginErrorReadLine();
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Ошибка запуска OpenVPN: {ex.Message}");
+            OnOutputDataReceived?.Invoke($"Ошибка запуска OpenVPN: {ex.Message}");
         }
     }
 
-    // Убиваем все дерево процессов, а так же дочерний процесс openvpn,
-    // потому что он не хочет диспозиться вместе с родительским элементом:)
     public void Disconnect()
     {
         foreach (var process in Process.GetProcessesByName("openvpn"))
@@ -74,12 +63,23 @@ public class OpenVpnManager
             {
                 process.Kill();
             }
-            catch (Exception ex)
+            catch
             {
-                Debug.WriteLine($"Ошибка закрытия OpenVPN: {ex.Message}");
+                // ignored
             }
         }
 
         _vpnProcess = null;
+    }
+
+    private static string GetOpenVpnExecutablePath()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return @"C:\Program Files\OpenVPN\bin\openvpn.exe";
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            return "openvpn";
+
+        throw new PlatformNotSupportedException("ОС не поддерживается");
     }
 }

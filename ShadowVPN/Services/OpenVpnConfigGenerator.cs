@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -49,11 +50,13 @@ public static class OpenVpnConfigGenerator
 
     private static void SaveToFile(string config)
     {
-        var path = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            "OpenVPN", "config", "client.ovpn");
+        var configDir = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "OpenVPN", "config")
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "shadowvpn");
 
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var path = Path.Combine(configDir, "client.ovpn");
+
+        Directory.CreateDirectory(configDir);
         File.WriteAllText(path, config, Encoding.UTF8);
     }
 
