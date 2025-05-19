@@ -25,14 +25,14 @@ public static class OpenVpnConfigGenerator
             var createUri = $"http://{serverIp}:5000/createvpnuser?raw={escapedRaw}";
             var createRes = await HttpClient.PostAsync(createUri, null);
             if (!createRes.IsSuccessStatusCode)
-                return (false, $"Пользователь уже существует или ошибка ({createRes.StatusCode})");
+                return (false, $"Ошибка ({createRes.StatusCode})");
 
             var getUri = $"http://{serverIp}:5000/getvpnconfig?raw={escapedRaw}";
             var getRes = await HttpClient.GetAsync(getUri);
             getRes.EnsureSuccessStatusCode();
 
             var rawConfig = await getRes.Content.ReadAsStringAsync();
-            var formattedConfig = FormatConfig(rawConfig);
+            var formattedConfig = FormatConfig(rawConfig,serverIp);
             SaveToFile(formattedConfig);
 
             return (true, "Конфигурация успешно создана и сохранена.");
@@ -47,14 +47,6 @@ public static class OpenVpnConfigGenerator
         }
     }
 
-
-    private static string ComputeHash(string password)
-    {
-        using var sha256 = SHA256.Create();
-        var bytes = Encoding.UTF8.GetBytes(password);
-        return Convert.ToHexString(sha256.ComputeHash(bytes)).ToLowerInvariant();
-    }
-
     private static void SaveToFile(string config)
     {
         var path = Path.Combine(
@@ -65,7 +57,7 @@ public static class OpenVpnConfigGenerator
         File.WriteAllText(path, config, Encoding.UTF8);
     }
 
-    private static string FormatConfig(string configData)
+    private static string FormatConfig(string configData, string serverIp)
     {
         configData = configData.Trim('"').Replace("\\n", "\n");
 
@@ -78,7 +70,7 @@ public static class OpenVpnConfigGenerator
                 client
                 dev tun
                 proto udp
-                remote 109.120.132.39 1194
+                remote {serverIp} 1194
                 resolv-retry infinite
                 nobind
                 persist-key

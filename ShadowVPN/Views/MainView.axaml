@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:ShadowVPN.ViewModels"
              xmlns:dialogHostAvalonia="clr-namespace:DialogHostAvalonia;assembly=DialogHost.Avalonia"
-             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="500"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
              x:Class="ShadowVPN.Views.MainView"
              x:DataType="vm:MainViewModel">
 
@@ -12,7 +12,7 @@
         <vm:MainViewModel />
     </UserControl.DataContext>
 
-    <dialogHostAvalonia:DialogHost
+    <dialogHostAvalonia:DialogHost CornerRadius="100"
         IsOpen="{Binding #SettingsButton.IsChecked}">
         <dialogHostAvalonia:DialogHost.DialogContent>
             <StackPanel Width="300" Margin="10">
