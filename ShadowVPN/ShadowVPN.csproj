@@ -21,6 +21,7 @@
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
         </PackageReference>
         <PackageReference Include="Avalonia.ReactiveUI"/>
+        <PackageReference Include="CommunityToolkit.Mvvm" />
         <PackageReference Include="DialogHost.Avalonia" />
         <PackageReference Include="ReactiveUI.Fody" />
         <PackageReference Include="Tomlyn" />

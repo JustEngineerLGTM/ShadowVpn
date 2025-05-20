@@ -7,7 +7,7 @@
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
              x:Class="ShadowVPN.Views.MainView"
              x:DataType="vm:MainViewModel">
-
+            
     <UserControl.DataContext>
         <vm:MainViewModel />
     </UserControl.DataContext>
