@@ -24,6 +24,7 @@
         <PackageReference Include="CommunityToolkit.Mvvm" />
         <PackageReference Include="DialogHost.Avalonia" />
         <PackageReference Include="ReactiveUI.Fody" />
+        <PackageReference Include="System.Text.Json" />
         <PackageReference Include="Tomlyn" />
     </ItemGroup>
 </Project>

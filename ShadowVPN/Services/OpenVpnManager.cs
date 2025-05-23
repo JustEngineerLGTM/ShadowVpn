@@ -63,9 +63,9 @@ public class OpenVpnManager
             {
                 process.Kill();
             }
-            catch
+            catch (Exception ex)
             {
-                // ignored
+                Console.WriteLine(ex);
             }
         }
 

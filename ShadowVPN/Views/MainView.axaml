@@ -4,16 +4,17 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:ShadowVPN.ViewModels"
              xmlns:dialogHostAvalonia="clr-namespace:DialogHostAvalonia;assembly=DialogHost.Avalonia"
+             xmlns:shadowVpn="clr-namespace:ShadowVPN"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
              x:Class="ShadowVPN.Views.MainView"
              x:DataType="vm:MainViewModel">
-            
+
     <UserControl.DataContext>
         <vm:MainViewModel />
     </UserControl.DataContext>
 
     <dialogHostAvalonia:DialogHost CornerRadius="100"
-        IsOpen="{Binding #SettingsButton.IsChecked}">
+                                   IsOpen="{Binding #SettingsButton.IsChecked}">
         <dialogHostAvalonia:DialogHost.DialogContent>
             <StackPanel Width="300" Margin="10">
                 <TextBlock Text="IP сервера:" />
@@ -37,8 +38,7 @@
                            Padding="10"
                            Margin="0,10,0,0"
                            TextWrapping="Wrap"
-                           HorizontalAlignment="Center"
-                           IsVisible="{Binding IsStatusVisible}" />
+                           HorizontalAlignment="Center" />
             </StackPanel>
         </dialogHostAvalonia:DialogHost.DialogContent>
         <Grid RowDefinitions="Auto,Auto,Auto,Auto,*"
@@ -61,49 +61,140 @@
                 </ToggleButton.IsEnabled>
             </ToggleButton>
             <!-- Крутая кнопка подключения -->
-            <Button Grid.Row="2" Grid.Column="1"
-                    Command="{Binding ToggleConnectionCommand}"
-                    Height="200" Width="200"
-                    Background="Transparent"
-                    HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
-                    CornerRadius="100"
-                    Margin="0,20,0,0">
-                <Classes.connected>
-                    <Binding Path="ConnectionStatus" Converter="{x:Static ObjectConverters.Equal}">
-                        <Binding.ConverterParameter>
-                            <vm:ConnectionStatus>Connected</vm:ConnectionStatus>
-                        </Binding.ConverterParameter>
-                    </Binding>
-                </Classes.connected>
-                <Classes.connecting>
-                    <Binding Path="ConnectionStatus" Converter="{x:Static ObjectConverters.Equal}">
-                        <Binding.ConverterParameter>
-                            <vm:ConnectionStatus>Connecting</vm:ConnectionStatus>
-                        </Binding.ConverterParameter>
-                    </Binding>
-                </Classes.connecting>
-                <Classes.diconnected>
-                    <Binding Path="ConnectionStatus" Converter="{x:Static ObjectConverters.Equal}">
-                        <Binding.ConverterParameter>
-                            <vm:ConnectionStatus>Disconnected</vm:ConnectionStatus>
-                        </Binding.ConverterParameter>
-                    </Binding>
-                </Classes.diconnected>
-                <Button.Styles>
-                    <Style Selector="Button.connected">
-                        <Setter Property="BorderBrush" Value="Green"></Setter>
-                        <Setter Property="Content" Value="Подключено"></Setter>
-                    </Style>
-                    <Style Selector="Button.connecting">
-                        <Setter Property="BorderBrush" Value="DeepSkyBlue"></Setter>
-                        <Setter Property="Content" Value="Подключение"></Setter>
-                    </Style>
-                    <Style Selector="Button.diconnected">
+            <shadowVpn:ConnectionButton Grid.Row="2" Grid.Column="1"
+                                        IsEnabled="{Binding HasConfigFile}"
+                                        Command="{Binding ToggleConnectionCommand}"
+                                        Status="{Binding ConnectionStatus}"
+                                        Height="200" Width="200"
+                                        HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                        Margin="0,20,0,0">
+                <shadowVpn:ConnectionButton.Template>
+                    <ControlTemplate>
+                        <Panel>
+                            <Arc Name="PART_Arc"
+                                 Fill="{TemplateBinding Background}"
+                                 Stroke="{TemplateBinding BorderBrush}"
+                                 StrokeJoin="Round"
+                                 StrokeLineCap="Round"
+                                 StrokeThickness="2"
+                                 SweepAngle="360">
+                                <Arc.Transitions>
+                                    <Transitions>
+                                        <BrushTransition Property="Stroke" Duration="0:0:0.5" />
+                                        <!-- <DoubleTransition Easing="CircularEaseOut" -->
+                                        <!--                   Property="SweepAngle" -->
+                                        <!--                   Duration="0:0:0.8" /> -->
+                                    </Transitions>
+                                </Arc.Transitions>
+                            </Arc>
+                            <ContentPresenter x:Name="PART_ContentPresenter"
+                                              CornerRadius="{TemplateBinding CornerRadius}"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Padding="{TemplateBinding Padding}"
+                                              RecognizesAccessKey="True"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Panel>
+                    </ControlTemplate>
+                </shadowVpn:ConnectionButton.Template>
+
+                <!-- <Classes.connected> -->
+                <!--     <Binding Path="ConnectionStatus" Converter="{x:Static ObjectConverters.Equal}"> -->
+                <!--         <Binding.ConverterParameter> -->
+                <!--             <vm:ConnectionStatus>Connected</vm:ConnectionStatus> -->
+                <!--         </Binding.ConverterParameter> -->
+                <!--     </Binding> -->
+                <!-- </Classes.connected> -->
+                <!-- <Classes.connecting> -->
+                <!--     <Binding Path="ConnectionStatus" Converter="{x:Static ObjectConverters.Equal}"> -->
+                <!--         <Binding.ConverterParameter> -->
+                <!--             <vm:ConnectionStatus>Connecting</vm:ConnectionStatus> -->
+                <!--         </Binding.ConverterParameter> -->
+                <!--     </Binding> -->
+                <!-- </Classes.connecting> -->
+                <!-- <Classes.diconnected> -->
+                <!--     <Binding Path="ConnectionStatus" Converter="{x:Static ObjectConverters.Equal}"> -->
+                <!--         <Binding.ConverterParameter> -->
+                <!--             <vm:ConnectionStatus>Disconnected</vm:ConnectionStatus> -->
+                <!--         </Binding.ConverterParameter> -->
+                <!--     </Binding> -->
+                <!-- </Classes.diconnected> -->
+                <shadowVpn:ConnectionButton.Styles>
+                    <Style Selector="shadowVpn|ConnectionButton.disconnected">
                         <Setter Property="BorderBrush" Value="Gray"></Setter>
                         <Setter Property="Content" Value="Отключено"></Setter>
                     </Style>
-                </Button.Styles>
-            </Button>
+                    <Style Selector="shadowVpn|ConnectionButton.connecting">
+                        <Setter Property="BorderBrush" Value="DeepSkyBlue"></Setter>
+                        <Setter Property="Content" Value="Подключение"></Setter>
+                        <Style Selector="^ Arc">
+                            <Setter Property="SweepAngle" Value="45" />
+                            <Style.Animations>
+                                <!-- <Animation IterationCount="Infinite" Duration="0:0:1"> -->
+                                <!--     <KeyFrame Cue="0%"> -->
+                                <!--         <Setter Property="StartAngle" Value="0" /> -->
+                                <!--     </KeyFrame> -->
+                                <!--     <KeyFrame Cue="100%"> -->
+                                <!--         <Setter Property="StartAngle" Value="360" /> -->
+                                <!--     </KeyFrame> -->
+                                <!-- </Animation> -->
+                                <!-- <Animation Duration="0:0:1"> -->
+                                <!--     <KeyFrame Cue="0%"> -->
+                                <!--         <Setter Property="SweepAngle" Value="0" /> -->
+                                <!--     </KeyFrame> -->
+                                <!--     <KeyFrame Cue="100%"> -->
+                                <!--         <Setter Property="SweepAngle" Value="45" /> -->
+                                <!--     </KeyFrame> -->
+                                <!-- </Animation> -->
+                            </Style.Animations>
+                        </Style>
+                    </Style>
+                    <Style Selector="shadowVpn|ConnectionButton.connected">
+                        <Setter Property="BorderBrush" Value="Green"></Setter>
+                        <Setter Property="Content" Value="Подключено"></Setter>
+                        <Style Selector="^ Arc">
+                            <Setter Property="SweepAngle" Value="360" />
+                            <!-- <Style.Animations> -->
+                            <!--     <Animation FillMode="None" Duration="0:0:1"> -->
+                            <!--         <KeyFrame Cue="0%"> -->
+                            <!--             <Setter Property="SweepAngle" Value="45" /> -->
+                            <!--         </KeyFrame> -->
+                            <!--         <KeyFrame Cue="100%"> -->
+                            <!--             <Setter Property="SweepAngle" Value="360" /> -->
+                            <!--         </KeyFrame> -->
+                            <!--     </Animation> -->
+                            <!-- </Style.Animations> -->
+                        </Style>
+                    </Style>
+                    <Style Selector="shadowVpn|ConnectionButton:not(.diconnected) Arc">
+                        <Style.Animations>
+                            <Animation IterationCount="Infinite" Duration="0:0:1">
+                                <KeyFrame Cue="0%">
+                                    <Setter Property="StartAngle" Value="0" />
+                                </KeyFrame>
+                                <KeyFrame Cue="100%">
+                                    <Setter Property="StartAngle" Value="360" />
+                                </KeyFrame>
+                            </Animation>
+                        </Style.Animations>
+                    </Style>
+                    <Style Selector="shadowVpn|ConnectionButton">
+                        <Setter Property="Background" Value="Transparent" />
+
+                        <Style Selector="^:pointerover">
+                            <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}" />
+                            <Setter Property="Foreground" Value="{DynamicResource ButtonForegroundPointerOver}" />
+                        </Style>
+
+                        <Style Selector="^:pressed">
+                            <Setter Property="RenderTransform" Value="scale(0.98)" />
+                            <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPressed}" />
+                            <Setter Property="Foreground" Value="{DynamicResource ButtonForegroundPressed}" />
+                        </Style>
+                    </Style>
+                </shadowVpn:ConnectionButton.Styles>
+            </shadowVpn:ConnectionButton>
         </Grid>
     </dialogHostAvalonia:DialogHost>
 </UserControl>

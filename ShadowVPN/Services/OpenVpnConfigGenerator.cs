@@ -17,8 +17,7 @@ public static class OpenVpnConfigGenerator
     {
         try
         {
-            using var sha256 = SHA256.Create();
-            var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
             var hash = Convert.ToHexString(hashBytes).ToLowerInvariant();
             var raw = $"{username}={hash}";
             var escapedRaw = Uri.EscapeDataString(raw);
@@ -33,7 +32,7 @@ public static class OpenVpnConfigGenerator
             getRes.EnsureSuccessStatusCode();
 
             var rawConfig = await getRes.Content.ReadAsStringAsync();
-            var formattedConfig = FormatConfig(rawConfig,serverIp);
+            var formattedConfig = FormatConfig(rawConfig, serverIp);
             SaveToFile(formattedConfig);
 
             return (true, "Конфигурация успешно создана и сохранена.");
