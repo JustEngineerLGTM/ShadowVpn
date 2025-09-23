@@ -81,9 +81,6 @@
                                 <Arc.Transitions>
                                     <Transitions>
                                         <BrushTransition Property="Stroke" Duration="0:0:0.5" />
-                                        <!-- <DoubleTransition Easing="CircularEaseOut" -->
-                                        <!--                   Property="SweepAngle" -->
-                                        <!--                   Duration="0:0:0.8" /> -->
                                     </Transitions>
                                 </Arc.Transitions>
                             </Arc>
@@ -98,28 +95,6 @@
                         </Panel>
                     </ControlTemplate>
                 </shadowVpn:ConnectionButton.Template>
-
-                <!-- <Classes.connected> -->
-                <!--     <Binding Path="ConnectionStatus" Converter="{x:Static ObjectConverters.Equal}"> -->
-                <!--         <Binding.ConverterParameter> -->
-                <!--             <vm:ConnectionStatus>Connected</vm:ConnectionStatus> -->
-                <!--         </Binding.ConverterParameter> -->
-                <!--     </Binding> -->
-                <!-- </Classes.connected> -->
-                <!-- <Classes.connecting> -->
-                <!--     <Binding Path="ConnectionStatus" Converter="{x:Static ObjectConverters.Equal}"> -->
-                <!--         <Binding.ConverterParameter> -->
-                <!--             <vm:ConnectionStatus>Connecting</vm:ConnectionStatus> -->
-                <!--         </Binding.ConverterParameter> -->
-                <!--     </Binding> -->
-                <!-- </Classes.connecting> -->
-                <!-- <Classes.diconnected> -->
-                <!--     <Binding Path="ConnectionStatus" Converter="{x:Static ObjectConverters.Equal}"> -->
-                <!--         <Binding.ConverterParameter> -->
-                <!--             <vm:ConnectionStatus>Disconnected</vm:ConnectionStatus> -->
-                <!--         </Binding.ConverterParameter> -->
-                <!--     </Binding> -->
-                <!-- </Classes.diconnected> -->
                 <shadowVpn:ConnectionButton.Styles>
                     <Style Selector="shadowVpn|ConnectionButton.disconnected">
                         <Setter Property="BorderBrush" Value="Gray"></Setter>
@@ -130,24 +105,6 @@
                         <Setter Property="Content" Value="Подключение"></Setter>
                         <Style Selector="^ Arc">
                             <Setter Property="SweepAngle" Value="45" />
-                            <Style.Animations>
-                                <!-- <Animation IterationCount="Infinite" Duration="0:0:1"> -->
-                                <!--     <KeyFrame Cue="0%"> -->
-                                <!--         <Setter Property="StartAngle" Value="0" /> -->
-                                <!--     </KeyFrame> -->
-                                <!--     <KeyFrame Cue="100%"> -->
-                                <!--         <Setter Property="StartAngle" Value="360" /> -->
-                                <!--     </KeyFrame> -->
-                                <!-- </Animation> -->
-                                <!-- <Animation Duration="0:0:1"> -->
-                                <!--     <KeyFrame Cue="0%"> -->
-                                <!--         <Setter Property="SweepAngle" Value="0" /> -->
-                                <!--     </KeyFrame> -->
-                                <!--     <KeyFrame Cue="100%"> -->
-                                <!--         <Setter Property="SweepAngle" Value="45" /> -->
-                                <!--     </KeyFrame> -->
-                                <!-- </Animation> -->
-                            </Style.Animations>
                         </Style>
                     </Style>
                     <Style Selector="shadowVpn|ConnectionButton.connected">
@@ -155,16 +112,6 @@
                         <Setter Property="Content" Value="Подключено"></Setter>
                         <Style Selector="^ Arc">
                             <Setter Property="SweepAngle" Value="360" />
-                            <!-- <Style.Animations> -->
-                            <!--     <Animation FillMode="None" Duration="0:0:1"> -->
-                            <!--         <KeyFrame Cue="0%"> -->
-                            <!--             <Setter Property="SweepAngle" Value="45" /> -->
-                            <!--         </KeyFrame> -->
-                            <!--         <KeyFrame Cue="100%"> -->
-                            <!--             <Setter Property="SweepAngle" Value="360" /> -->
-                            <!--         </KeyFrame> -->
-                            <!--     </Animation> -->
-                            <!-- </Style.Animations> -->
                         </Style>
                     </Style>
                     <Style Selector="shadowVpn|ConnectionButton:not(.diconnected) Arc">

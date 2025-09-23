@@ -6,7 +6,7 @@
         mc:Ignorable="d"
         d:DesignWidth="900" d:DesignHeight="1600"
         x:Class="ShadowVPN.Views.MainWindow"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/ShadowVPN.ico"
         Title="ShadowVPN"
         Width="400" Height="400"
         CanResize="False">

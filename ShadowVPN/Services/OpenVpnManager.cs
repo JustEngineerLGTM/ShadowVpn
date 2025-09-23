@@ -10,6 +10,7 @@ public class OpenVpnManager
     private Process? _vpnProcess;
 
     public event Action<string>? OnOutputDataReceived;
+    public event Action? OnProcessExited;
 
     public void Connect(string configPath)
     {
@@ -36,11 +37,11 @@ public class OpenVpnManager
             if (!string.IsNullOrEmpty(e.Data))
                 OnOutputDataReceived?.Invoke(e.Data);
         };
-
-        _vpnProcess.ErrorDataReceived += (_, e) =>
+        
+        _vpnProcess.ErrorDataReceived += (_, dataReceivedEventArgs) =>
         {
-            if (!string.IsNullOrEmpty(e.Data))
-                OnOutputDataReceived?.Invoke(e.Data);
+            if (!string.IsNullOrEmpty(dataReceivedEventArgs.Data))
+                OnOutputDataReceived?.Invoke(dataReceivedEventArgs.Data);
         };
 
         try
