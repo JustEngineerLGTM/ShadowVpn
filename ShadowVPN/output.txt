@@ -1,0 +1,821 @@
+App.axaml
+
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:ShadowVPN"
+             xmlns:dialogHostAvalonia="clr-namespace:DialogHostAvalonia;assembly=DialogHost.Avalonia"
+             x:Class="ShadowVPN.App"
+             RequestedThemeVariant="Dark">
+    <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+
+    <Application.DataTemplates>
+        <local:ViewLocator />
+    </Application.DataTemplates>
+
+    <Application.Styles>
+        <FluentTheme />
+        <dialogHostAvalonia:DialogHostStyles />
+    </Application.Styles>
+</Application>
+
+App.axaml.cs
+
+using System;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Markup.Xaml;
+using ShadowVPN.Services;
+using ShadowVPN.ViewModels;
+using ShadowVPN.Views;
+
+namespace ShadowVPN;
+
+public partial class App : Application
+{
+    private OpenVpnManager? _vpnManager;
+    private MainViewModel? _mainViewModel;
+
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+    }
+
+    public override void OnFrameworkInitializationCompleted()
+    {
+        _vpnManager = new OpenVpnManager();
+        _mainViewModel = new MainViewModel();
+
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            desktop.MainWindow = new MainWindow
+            {
+                DataContext = _mainViewModel
+            };
+            // Выключаем сервис openvpn 
+            desktop.ShutdownRequested += (s, e) => _vpnManager?.Disconnect();
+            desktop.Exit += (s, e) => _vpnManager?.Disconnect();
+
+            AppDomain.CurrentDomain.ProcessExit += (s, e) => _vpnManager?.Disconnect();
+        }
+        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
+        {
+            singleViewPlatform.MainView = new MainView
+            {
+                DataContext = _mainViewModel
+            };
+        }
+
+        base.OnFrameworkInitializationCompleted();
+    }
+}
+
+ConnectionButton.cs
+
+using System;
+using System.Threading;
+using Avalonia;
+using Avalonia.Animation;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Shapes;
+using Avalonia.Styling;
+using ShadowVPN.ViewModels;
+
+namespace ShadowVPN;
+
+public class ConnectionButton : Button
+{
+    private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private Arc _arc = null!;
+
+    public ConnectionButton()
+    {
+        Classes.Add("disconnected");
+    }
+
+    public static readonly StyledProperty<ConnectionStatus> StatusProperty =
+        AvaloniaProperty.Register<ConnectionButton, ConnectionStatus>(nameof(Status));
+
+    public ConnectionStatus Status
+    {
+        get => GetValue(StatusProperty);
+        set => SetValue(StatusProperty, value);
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property != StatusProperty) return;
+        _cancellationTokenSource.Cancel();
+        _cancellationTokenSource.Dispose();
+        _cancellationTokenSource = new CancellationTokenSource();
+
+        Classes.Clear();
+        switch ((ConnectionStatus)change.NewValue!)
+        {
+            case ConnectionStatus.Disconnected:
+                Classes.Add("disconnected");
+                break;
+            case ConnectionStatus.Connecting:
+                Classes.Add("connecting");
+                var connectingAnimation = new Animation()
+                {
+                    Duration = TimeSpan.FromSeconds(1),
+                    Children =
+                    {
+                        new KeyFrame()
+                        {
+                            Cue = new Cue(0),
+                            Setters =
+                            {
+                                new Setter() { Property = Arc.SweepAngleProperty, Value = 0d }
+                            }
+                        },
+                        new KeyFrame()
+                        {
+                            Cue = new Cue(1),
+                            Setters =
+                            {
+                                new Setter() { Property = Arc.SweepAngleProperty, Value = 45d }
+                            }
+                        }
+                    }
+                };
+
+                _ = connectingAnimation.RunAsync(_arc, _cancellationTokenSource.Token);
+                break;
+            case ConnectionStatus.Connected:
+                Classes.Add("connected");
+                var connectedAnimation = new Animation()
+                {
+                    Duration = TimeSpan.FromSeconds(1),
+                    Children =
+                    {
+                        new KeyFrame()
+                        {
+                            Cue = new Cue(0),
+                            Setters =
+                            {
+                                new Setter() { Property = Arc.SweepAngleProperty, Value = 0d }
+                            }
+                        },
+                        new KeyFrame()
+                        {
+                            Cue = new Cue(1),
+                            Setters =
+                            {
+                                new Setter() { Property = Arc.SweepAngleProperty, Value = 360d }
+                            }
+                        }
+                    }
+                };
+
+                _ = connectedAnimation.RunAsync(_arc, _cancellationTokenSource.Token);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+    
+    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+    {
+        base.OnApplyTemplate(e);
+        _arc = e.NameScope.Find<Arc>("PART_Arc")!;
+    }
+}
+
+ViewLocator.cs
+
+using System;
+using Avalonia.Controls;
+using Avalonia.Controls.Templates;
+using ShadowVPN.ViewModels;
+
+namespace ShadowVPN;
+
+public class ViewLocator : IDataTemplate
+{
+    public Control? Build(object? param)
+    {
+        if (param is null)
+            return null;
+
+        var name = param.GetType().FullName!.Replace("ViewModel", "View", StringComparison.Ordinal);
+        var type = Type.GetType(name);
+
+        if (type != null)
+        {
+            return (Control)Activator.CreateInstance(type)!;
+        }
+
+        return new TextBlock { Text = "Not Found: " + name };
+    }
+
+    public bool Match(object? data)
+    {
+        return data is ViewModelBase;
+    }
+}
+
+OpenVpnConfigGenerator.cs
+
+using System;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ShadowVPN.Services;
+
+public static class OpenVpnConfigGenerator
+{
+    private static readonly HttpClient HttpClient = new();
+
+    public static async Task<(bool success, string? status)> CreateAndFetchConfigAsync(string serverIp, string username, string password)
+    {
+        try
+        {
+            var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
+            var hash = Convert.ToHexString(hashBytes).ToLowerInvariant();
+            var raw = $"{username}={hash}";
+            var escapedRaw = Uri.EscapeDataString(raw);
+
+            var createUri = $"http://{serverIp}:5000/createvpnuser?raw={escapedRaw}";
+            var createRes = await HttpClient.PostAsync(createUri, null);
+            if (!createRes.IsSuccessStatusCode)
+                return (false, $"Ошибка ({createRes.StatusCode})");
+
+            var getUri = $"http://{serverIp}:5000/getvpnconfig?raw={escapedRaw}";
+            var getRes = await HttpClient.GetAsync(getUri);
+            getRes.EnsureSuccessStatusCode();
+
+            var rawConfig = await getRes.Content.ReadAsStringAsync();
+            var formattedConfig = FormatConfig(rawConfig, serverIp);
+            SaveToFile(formattedConfig);
+
+            return (true, "Конфигурация успешно создана и сохранена.");
+        }
+        catch (HttpRequestException ex)
+        {
+            return (false, $"Сетевая ошибка: {ex.Message} {serverIp}");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Ошибка: {ex.Message}");
+        }
+    }
+
+    private static void SaveToFile(string config)
+    {
+        var configDir = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "OpenVPN", "config")
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "shadowvpn");
+
+        var path = Path.Combine(configDir, "client.ovpn");
+
+        Directory.CreateDirectory(configDir);
+        File.WriteAllText(path, config, Encoding.UTF8);
+    }
+
+    private static string FormatConfig(string configData, string serverIp)
+    {
+        configData = configData.Trim('"').Replace("\\n", "\n");
+
+        var caCert = Clean(Extract(configData, "ca"));
+        var cert = Clean(Extract(configData, "cert"));
+        var key = Clean(Extract(configData, "key"));
+        var tlsAuth = Clean(Extract(configData, "tls-auth"));
+
+        return $"""
+                client
+                dev tun
+                proto udp
+                remote {serverIp} 1194
+                resolv-retry infinite
+                nobind
+                persist-key
+                persist-tun
+
+                <ca>
+                {caCert}
+                </ca>
+
+                <cert>
+                {cert}
+                </cert>
+
+                <key>
+                {key}
+                </key>
+
+                <tls-auth>
+                {tlsAuth}
+                </tls-auth>
+
+                remote-cert-tls server
+                data-ciphers AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305
+                cipher AES-256-CBC
+                key-direction 1
+                auth SHA256
+                verb 3
+                """;
+    }
+
+    private static string Extract(string data, string tag)
+    {
+        var start = $"<{tag}>";
+        var end = $"</{tag}>";
+        var i1 = data.IndexOf(start, StringComparison.Ordinal);
+        var i2 = data.IndexOf(end, StringComparison.Ordinal);
+
+        return (i1 >= 0 && i2 > i1)
+            ? data[(i1 + start.Length)..i2].Trim()
+            : string.Empty;
+    }
+
+    private static string Clean(string input)
+    {
+        return string.Join(
+            Environment.NewLine,
+            input.Replace("\\r", "")
+                .Replace("\r", "")
+                .Split('\n')
+                .Select(l => l.Trim())
+                .Where(l => !string.IsNullOrWhiteSpace(l))
+        );
+    }
+}
+
+OpenVpnManager.cs
+
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
+
+namespace ShadowVPN.Services;
+
+public class OpenVpnManager
+{
+    private Process? _vpnProcess;
+
+    public event Action<string>? OnOutputDataReceived;
+
+    public void Connect(string configPath)
+    {
+        if (_vpnProcess != null)
+            Disconnect();
+
+        var openVpnPath = GetOpenVpnExecutablePath();
+
+        _vpnProcess = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = openVpnPath,
+                Arguments = $"--config \"{configPath}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
+
+        _vpnProcess.OutputDataReceived += (_, e) =>
+        {
+            if (!string.IsNullOrEmpty(e.Data))
+                OnOutputDataReceived?.Invoke(e.Data);
+        };
+
+        _vpnProcess.ErrorDataReceived += (_, e) =>
+        {
+            if (!string.IsNullOrEmpty(e.Data))
+                OnOutputDataReceived?.Invoke(e.Data);
+        };
+
+        try
+        {
+            if (!_vpnProcess.Start()) return;
+            _vpnProcess.BeginOutputReadLine();
+            _vpnProcess.BeginErrorReadLine();
+        }
+        catch (Exception ex)
+        {
+            OnOutputDataReceived?.Invoke($"Ошибка запуска OpenVPN: {ex.Message}");
+        }
+    }
+
+    public void Disconnect()
+    {
+        foreach (var process in Process.GetProcessesByName("openvpn"))
+        {
+            try
+            {
+                process.Kill();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+
+        _vpnProcess = null;
+    }
+
+    private static string GetOpenVpnExecutablePath()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return @"C:\Program Files\OpenVPN\bin\openvpn.exe";
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            return "openvpn";
+
+        throw new PlatformNotSupportedException("ОС не поддерживается");
+    }
+}
+
+SettingsService.cs
+
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using Tomlyn;
+using Tomlyn.Model;
+
+namespace ShadowVPN.Services;
+
+public static class SettingsService
+{
+    public static string GetSettingsDirectory() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ShadowVPN")
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "shadowvpn");
+
+    public static string GetSettingsFilePath() =>
+        Path.Combine(GetSettingsDirectory(), "settings.toml");
+
+    public static (string ip, string username, string password)? Load()
+    {
+        var path = GetSettingsFilePath();
+        if (!File.Exists(path)) return null;
+        var model = Toml.ToModel(File.ReadAllText(path));
+        return (
+            model["server_ip"]?.ToString() ?? "",
+            model["username"]?.ToString() ?? "",
+            model["password"]?.ToString() ?? ""
+        );
+    }
+
+    public static void Save(string ip, string username, string password)
+    {
+        var dir = GetSettingsDirectory();
+        if (!Directory.Exists(dir))
+            Directory.CreateDirectory(dir);
+        var table = new TomlTable
+        {
+            ["server_ip"] = ip,
+            ["username"] = username,
+            ["password"] = password
+        };
+        File.WriteAllText(GetSettingsFilePath(), Toml.FromModel(table));
+    }
+}
+
+VpnAccountService.cs
+
+using System.Threading.Tasks;
+
+namespace ShadowVPN.Services;
+
+public static class VpnAccountService
+{
+    public static async Task<(bool, string?)> SaveAndFetchConfigAsync(string ip, string user, string password)
+    {
+        var (success, status) = await OpenVpnConfigGenerator.CreateAndFetchConfigAsync(ip, user, password);
+        if (success)
+            SettingsService.Save(ip, user, password);
+        return (success, status);
+    }
+}
+
+ConnectionStatus.cs
+
+namespace ShadowVPN.ViewModels;
+
+public enum ConnectionStatus
+{
+    Disconnected,
+    Connecting,
+    Connected
+}
+
+MainViewModel.cs
+
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using System.Windows.Input;
+using Avalonia.Threading;
+using DialogHostAvalonia;
+using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
+using ShadowVPN.Services;
+
+namespace ShadowVPN.ViewModels;
+
+public class MainViewModel : ViewModelBase
+{
+    private readonly OpenVpnManager _vpnManager;
+
+    public MainViewModel()
+    {
+        _vpnManager = new OpenVpnManager();
+        ToggleConnectionCommand = ReactiveCommand.CreateFromTask(ToggleConnectionAsync);
+        SaveSettingsCommand = ReactiveCommand.CreateFromTask(SaveAndFetchConfigAsync);
+        var settings = SettingsService.Load();
+        if (settings == null) return;
+        HasConfigFile = true;
+        ServerIp = settings.Value.ip;
+        VpnUsername = settings.Value.username;
+        VpnPassword = settings.Value.password;
+    }
+
+    [Reactive] public ConnectionStatus ConnectionStatus { get; set; }
+
+    [Reactive]
+    [Required(ErrorMessage = "IP сервера обязателен")]
+    [RegularExpression(@"^(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}$",
+        ErrorMessage = "Неверный формат IP-адреса")]
+    public string ServerIp { get; set; } = null!;
+
+    [Required(ErrorMessage = "Укажите имя пользователя")]
+    [Reactive]
+    public string VpnUsername { get; set; } = null!;
+
+    [Reactive] public string VpnPassword { get; set; } = null!;
+    [Reactive] public string? StatusMessage { get; set; }
+    [Reactive] public bool HasConfigFile { get; set; }
+    public ICommand ToggleConnectionCommand { get; }
+    public ICommand SaveSettingsCommand { get; }
+
+    private async Task SaveAndFetchConfigAsync()
+    {
+        var (success, status) = await VpnAccountService.SaveAndFetchConfigAsync(ServerIp, VpnUsername, VpnPassword);
+        StatusMessage = status;
+        if (!success) return;
+        StatusMessage = null;
+        HasConfigFile = true;
+        DialogHost.Close(null);
+    }
+
+    private Task ToggleConnectionAsync()
+    {
+        if (ConnectionStatus != ConnectionStatus.Disconnected)
+        {
+            _vpnManager.Disconnect();
+            ConnectionStatus = ConnectionStatus.Disconnected;
+            StatusMessage = "VPN отключён.";
+            return Task.CompletedTask;
+        }
+
+        var cfgPath = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "OpenVPN", "config",
+                "client.ovpn")
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "shadowvpn",
+                "client.ovpn");
+
+        if (!File.Exists(cfgPath))
+        {
+            StatusMessage = "Конфиг не найден, сохраните сначала настройки.";
+        }
+        else
+        {
+            _vpnManager.OnOutputDataReceived += VpnOutputReceived;
+            ConnectionStatus = ConnectionStatus.Connecting;
+            _vpnManager.Connect(cfgPath);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void VpnOutputReceived(string line)
+    {
+        if (!line.Contains("Initialization Sequence Completed")) return;
+        ConnectionStatus = ConnectionStatus.Connected;
+        _vpnManager.OnOutputDataReceived -= VpnOutputReceived;
+    }
+}
+
+ViewModelBase.cs
+
+using ReactiveUI;
+
+namespace ShadowVPN.ViewModels;
+
+public abstract class ViewModelBase : ReactiveObject
+{
+}
+
+MainView.axaml
+
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:ShadowVPN.ViewModels"
+             xmlns:dialogHostAvalonia="clr-namespace:DialogHostAvalonia;assembly=DialogHost.Avalonia"
+             xmlns:shadowVpn="clr-namespace:ShadowVPN"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
+             x:Class="ShadowVPN.Views.MainView"
+             x:DataType="vm:MainViewModel">
+
+    <UserControl.DataContext>
+        <vm:MainViewModel />
+    </UserControl.DataContext>
+
+    <dialogHostAvalonia:DialogHost CornerRadius="100"
+                                   IsOpen="{Binding #SettingsButton.IsChecked}">
+        <dialogHostAvalonia:DialogHost.DialogContent>
+            <StackPanel Width="300" Margin="10">
+                <TextBlock Text="IP сервера:" />
+                <TextBox Text="{Binding ServerIp, Mode=TwoWay}" Watermark="Ip сервера" />
+
+                <TextBlock Text="Имя пользователя:" Margin="0,10,0,0" />
+                <TextBox Text="{Binding VpnUsername, Mode=TwoWay}" Watermark="Имя пользователя" />
+
+                <TextBlock Text="Пароль:" Margin="0,10,0,0" />
+                <TextBox Text="{Binding VpnPassword, Mode=TwoWay}" Watermark="Пароль" />
+
+                <Button Content="Сохранить"
+                        Command="{Binding SaveSettingsCommand}"
+                        Margin="0,15,0,0"
+                        HorizontalAlignment="Right" />
+
+                <!-- Состояние -->
+                <TextBlock Text="{Binding StatusMessage}"
+                           Foreground="White"
+                           Background="Black"
+                           Padding="10"
+                           Margin="0,10,0,0"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+        </dialogHostAvalonia:DialogHost.DialogContent>
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,*"
+              ColumnDefinitions="*,Auto,*"
+              Margin="20">
+            <!-- Заголовок -->
+            <TextBlock Grid.Row="0" Grid.Column="1"
+                       Text="ShadowVPN" FontSize="24" FontWeight="Bold"
+                       HorizontalAlignment="Center" />
+            <!-- Кнопка Настройки VPN -->
+            <ToggleButton x:Name="SettingsButton" Grid.Row="1" Grid.Column="1"
+                          Content="Настройки VPN"
+                          HorizontalAlignment="Center">
+                <ToggleButton.IsEnabled>
+                    <Binding Path="ConnectionStatus" Converter="{x:Static ObjectConverters.Equal}">
+                        <Binding.ConverterParameter>
+                            <vm:ConnectionStatus>Disconnected</vm:ConnectionStatus>
+                        </Binding.ConverterParameter>
+                    </Binding>
+                </ToggleButton.IsEnabled>
+            </ToggleButton>
+            <!-- Кнопка подключения -->
+            <shadowVpn:ConnectionButton Grid.Row="2" Grid.Column="1"
+                                        IsEnabled="{Binding HasConfigFile}"
+                                        Command="{Binding ToggleConnectionCommand}"
+                                        Status="{Binding ConnectionStatus}"
+                                        Height="200" Width="200"
+                                        HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                        Margin="0,20,0,0">
+                <shadowVpn:ConnectionButton.Template>
+                    <ControlTemplate>
+                        <Panel>
+                            <Arc Name="PART_Arc"
+                                 Fill="{TemplateBinding Background}"
+                                 Stroke="{TemplateBinding BorderBrush}"
+                                 StrokeJoin="Round"
+                                 StrokeLineCap="Round"
+                                 StrokeThickness="2"
+                                 SweepAngle="360">
+                                <Arc.Transitions>
+                                    <Transitions>
+                                        <BrushTransition Property="Stroke" Duration="0:0:0.5" />
+                                        <!-- <DoubleTransition Easing="CircularEaseOut" -->
+                                        <!--                   Property="SweepAngle" -->
+                                        <!--                   Duration="0:0:0.8" /> -->
+                                    </Transitions>
+                                </Arc.Transitions>
+                            </Arc>
+                            <ContentPresenter x:Name="PART_ContentPresenter"
+                                              CornerRadius="{TemplateBinding CornerRadius}"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Padding="{TemplateBinding Padding}"
+                                              RecognizesAccessKey="True"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Panel>
+                    </ControlTemplate>
+                </shadowVpn:ConnectionButton.Template>
+                <shadowVpn:ConnectionButton.Styles>
+                    <Style Selector="shadowVpn|ConnectionButton.disconnected">
+                        <Setter Property="BorderBrush" Value="Gray"></Setter>
+                        <Setter Property="Content" Value="Отключено"></Setter>
+                    </Style>
+                    <Style Selector="shadowVpn|ConnectionButton.connecting">
+                        <Setter Property="BorderBrush" Value="DeepSkyBlue"></Setter>
+                        <Setter Property="Content" Value="Подключение"></Setter>
+                        <Style Selector="^ Arc">
+                            <Setter Property="SweepAngle" Value="45" />
+                        </Style>
+                    </Style>
+                    <Style Selector="shadowVpn|ConnectionButton.connected">
+                        <Setter Property="BorderBrush" Value="Green"></Setter>
+                        <Setter Property="Content" Value="Подключено"></Setter>
+                        <Style Selector="^ Arc">
+                            <Setter Property="SweepAngle" Value="360" />
+                        </Style>
+                    </Style>
+                    <Style Selector="shadowVpn|ConnectionButton:not(.diconnected) Arc">
+                        <Style.Animations>
+                            <Animation IterationCount="Infinite" Duration="0:0:1">
+                                <KeyFrame Cue="0%">
+                                    <Setter Property="StartAngle" Value="0" />
+                                </KeyFrame>
+                                <KeyFrame Cue="100%">
+                                    <Setter Property="StartAngle" Value="360" />
+                                </KeyFrame>
+                            </Animation>
+                        </Style.Animations>
+                    </Style>
+                    <Style Selector="shadowVpn|ConnectionButton">
+                        <Setter Property="Background" Value="Transparent" />
+
+                        <Style Selector="^:pointerover">
+                            <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}" />
+                            <Setter Property="Foreground" Value="{DynamicResource ButtonForegroundPointerOver}" />
+                        </Style>
+
+                        <Style Selector="^:pressed">
+                            <Setter Property="RenderTransform" Value="scale(0.98)" />
+                            <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPressed}" />
+                            <Setter Property="Foreground" Value="{DynamicResource ButtonForegroundPressed}" />
+                        </Style>
+                    </Style>
+                </shadowVpn:ConnectionButton.Styles>
+            </shadowVpn:ConnectionButton>
+        </Grid>
+    </dialogHostAvalonia:DialogHost>
+</UserControl>
+
+MainView.axaml.cs
+
+using Avalonia.Controls;
+
+namespace ShadowVPN.Views;
+
+public partial class MainView : UserControl
+{
+    public MainView()
+    {
+        InitializeComponent();
+    }
+}
+
+MainWindow.axaml
+
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:ShadowVPN.Views"
+        mc:Ignorable="d"
+        d:DesignWidth="900" d:DesignHeight="1600"
+        x:Class="ShadowVPN.Views.MainWindow"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="ShadowVPN"
+        Width="400" Height="400"
+        CanResize="False">
+    <views:MainView />
+</Window>
+
+MainWindow.axaml.cs
+
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+
+namespace ShadowVPN.Views;
+
+public partial class MainWindow : Window
+{
+    public MainWindow()
+    {
+        InitializeComponent();
+    }
+}
+

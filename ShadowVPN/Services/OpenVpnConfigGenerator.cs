@@ -95,10 +95,10 @@ public static class OpenVpnConfigGenerator
                 </tls-auth>
 
                 remote-cert-tls server
-                data-ciphers AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305
-                cipher AES-256-CBC
+                data-ciphers AES-256-CBC
                 key-direction 1
                 auth SHA256
+                mssfix 1400
                 verb 3
                 """;
     }
