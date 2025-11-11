@@ -1,5 +1,4 @@
 ﻿using System.Threading.Tasks;
-
 namespace ShadowVPN.Services;
 
 public static class VpnAccountService

@@ -6,14 +6,14 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-
 namespace ShadowVPN.Services;
 
 public static class OpenVpnConfigGenerator
 {
-    private static readonly HttpClient HttpClient = new();
+    private readonly static HttpClient HttpClient = new();
 
-    public static async Task<(bool success, string? status)> CreateAndFetchConfigAsync(string serverIp, string username, string password)
+    public static async Task<(bool success, string? status)> CreateAndFetchConfigAsync(string serverIp, string username,
+        string password)
     {
         try
         {
@@ -110,7 +110,7 @@ public static class OpenVpnConfigGenerator
         var i1 = data.IndexOf(start, StringComparison.Ordinal);
         var i2 = data.IndexOf(end, StringComparison.Ordinal);
 
-        return (i1 >= 0 && i2 > i1)
+        return i1 >= 0 && i2 > i1
             ? data[(i1 + start.Length)..i2].Trim()
             : string.Empty;
     }

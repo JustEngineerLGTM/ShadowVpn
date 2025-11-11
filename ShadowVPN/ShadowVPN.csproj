@@ -21,10 +21,10 @@
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
         </PackageReference>
         <PackageReference Include="Avalonia.ReactiveUI"/>
-        <PackageReference Include="CommunityToolkit.Mvvm" />
-        <PackageReference Include="DialogHost.Avalonia" />
-        <PackageReference Include="ReactiveUI.Fody" />
-        <PackageReference Include="System.Text.Json" />
-        <PackageReference Include="Tomlyn" />
+        <PackageReference Include="CommunityToolkit.Mvvm"/>
+        <PackageReference Include="DialogHost.Avalonia"/>
+        <PackageReference Include="ReactiveUI.Fody"/>
+        <PackageReference Include="System.Text.Json"/>
+        <PackageReference Include="Tomlyn"/>
     </ItemGroup>
 </Project>

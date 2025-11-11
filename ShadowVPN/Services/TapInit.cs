@@ -2,9 +2,8 @@
 
 public class TapInit
 {
-    void Init()
-    
+    private void Init()
+
     {
-        
     }
 }

@@ -5,13 +5,12 @@ using Avalonia.Markup.Xaml;
 using ShadowVPN.Services;
 using ShadowVPN.ViewModels;
 using ShadowVPN.Views;
-
 namespace ShadowVPN;
 
-public partial class App : Application
+public class App : Application
 {
-    private OpenVpnManager? _vpnManager;
     private MainViewModel? _mainViewModel;
+    private OpenVpnManager? _vpnManager;
 
     public override void Initialize()
     {

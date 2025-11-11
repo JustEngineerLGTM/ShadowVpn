@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
-using System.IO;
 using System.Runtime.InteropServices;
-
 namespace ShadowVPN.Services;
 
 public class OpenVpnManager
@@ -37,7 +35,7 @@ public class OpenVpnManager
             if (!string.IsNullOrEmpty(e.Data))
                 OnOutputDataReceived?.Invoke(e.Data);
         };
-        
+
         _vpnProcess.ErrorDataReceived += (_, dataReceivedEventArgs) =>
         {
             if (!string.IsNullOrEmpty(dataReceivedEventArgs.Data))
@@ -47,6 +45,7 @@ public class OpenVpnManager
         try
         {
             if (!_vpnProcess.Start()) return;
+
             _vpnProcess.BeginOutputReadLine();
             _vpnProcess.BeginErrorReadLine();
         }

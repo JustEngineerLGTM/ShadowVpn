@@ -97,19 +97,19 @@
                 </shadowVpn:ConnectionButton.Template>
                 <shadowVpn:ConnectionButton.Styles>
                     <Style Selector="shadowVpn|ConnectionButton.disconnected">
-                        <Setter Property="BorderBrush" Value="Gray"></Setter>
-                        <Setter Property="Content" Value="Отключено"></Setter>
+                        <Setter Property="BorderBrush" Value="Gray" />
+                        <Setter Property="Content" Value="Отключено" />
                     </Style>
                     <Style Selector="shadowVpn|ConnectionButton.connecting">
-                        <Setter Property="BorderBrush" Value="DeepSkyBlue"></Setter>
-                        <Setter Property="Content" Value="Подключение"></Setter>
+                        <Setter Property="BorderBrush" Value="DeepSkyBlue" />
+                        <Setter Property="Content" Value="Подключение" />
                         <Style Selector="^ Arc">
                             <Setter Property="SweepAngle" Value="45" />
                         </Style>
                     </Style>
                     <Style Selector="shadowVpn|ConnectionButton.connected">
-                        <Setter Property="BorderBrush" Value="Green"></Setter>
-                        <Setter Property="Content" Value="Подключено"></Setter>
+                        <Setter Property="BorderBrush" Value="Green" />
+                        <Setter Property="Content" Value="Подключено" />
                         <Style Selector="^ Arc">
                             <Setter Property="SweepAngle" Value="360" />
                         </Style>

@@ -2,7 +2,6 @@ using System;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using ShadowVPN.ViewModels;
-
 namespace ShadowVPN;
 
 public class ViewLocator : IDataTemplate
@@ -20,7 +19,10 @@ public class ViewLocator : IDataTemplate
             return (Control)Activator.CreateInstance(type)!;
         }
 
-        return new TextBlock { Text = "Not Found: " + name };
+        return new TextBlock
+        {
+            Text = "Not Found: " + name
+        };
     }
 
     public bool Match(object? data)

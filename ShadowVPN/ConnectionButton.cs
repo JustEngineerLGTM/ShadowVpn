@@ -7,21 +7,21 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Styling;
 using ShadowVPN.ViewModels;
-
 namespace ShadowVPN;
 
 public class ConnectionButton : Button
 {
-    private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+
+    public readonly static StyledProperty<ConnectionStatus> StatusProperty =
+        AvaloniaProperty.Register<ConnectionButton, ConnectionStatus>(nameof(Status));
+
     private Arc _arc = null!;
+    private CancellationTokenSource _cancellationTokenSource = new();
 
     public ConnectionButton()
     {
         Classes.Add("disconnected");
     }
-
-    public static readonly StyledProperty<ConnectionStatus> StatusProperty =
-        AvaloniaProperty.Register<ConnectionButton, ConnectionStatus>(nameof(Status));
 
     public ConnectionStatus Status
     {
@@ -33,11 +33,13 @@ public class ConnectionButton : Button
     {
         base.OnPropertyChanged(change);
         if (change.Property != StatusProperty) return;
+
         _cancellationTokenSource.Cancel();
         _cancellationTokenSource.Dispose();
         _cancellationTokenSource = new CancellationTokenSource();
 
         Classes.Clear();
+
         switch ((ConnectionStatus)change.NewValue!)
         {
             case ConnectionStatus.Disconnected:
@@ -45,25 +47,31 @@ public class ConnectionButton : Button
                 break;
             case ConnectionStatus.Connecting:
                 Classes.Add("connecting");
-                var connectingAnimation = new Animation()
+                var connectingAnimation = new Animation
                 {
                     Duration = TimeSpan.FromSeconds(1),
                     Children =
                     {
-                        new KeyFrame()
+                        new KeyFrame
                         {
                             Cue = new Cue(0),
                             Setters =
                             {
-                                new Setter() { Property = Arc.SweepAngleProperty, Value = 0d }
+                                new Setter
+                                {
+                                    Property = Arc.SweepAngleProperty, Value = 0d
+                                }
                             }
                         },
-                        new KeyFrame()
+                        new KeyFrame
                         {
                             Cue = new Cue(1),
                             Setters =
                             {
-                                new Setter() { Property = Arc.SweepAngleProperty, Value = 45d }
+                                new Setter
+                                {
+                                    Property = Arc.SweepAngleProperty, Value = 45d
+                                }
                             }
                         }
                     }
@@ -73,25 +81,31 @@ public class ConnectionButton : Button
                 break;
             case ConnectionStatus.Connected:
                 Classes.Add("connected");
-                var connectedAnimation = new Animation()
+                var connectedAnimation = new Animation
                 {
                     Duration = TimeSpan.FromSeconds(1),
                     Children =
                     {
-                        new KeyFrame()
+                        new KeyFrame
                         {
                             Cue = new Cue(0),
                             Setters =
                             {
-                                new Setter() { Property = Arc.SweepAngleProperty, Value = 0d }
+                                new Setter
+                                {
+                                    Property = Arc.SweepAngleProperty, Value = 0d
+                                }
                             }
                         },
-                        new KeyFrame()
+                        new KeyFrame
                         {
                             Cue = new Cue(1),
                             Setters =
                             {
-                                new Setter() { Property = Arc.SweepAngleProperty, Value = 360d }
+                                new Setter
+                                {
+                                    Property = Arc.SweepAngleProperty, Value = 360d
+                                }
                             }
                         }
                     }
@@ -103,7 +117,7 @@ public class ConnectionButton : Button
                 throw new ArgumentOutOfRangeException();
         }
     }
-    
+
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);

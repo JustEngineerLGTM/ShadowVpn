@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Text;
 using Avalonia;
 using Avalonia.ReactiveUI;
-
 namespace ShadowVPN.Desktop;
 
 sealed class Program
@@ -10,15 +10,17 @@ sealed class Program
     public static void Main(string[] args)
     {
         // Устанавливаем кодировку вывода в консоль для корректного отображения UTF-8
-        Console.OutputEncoding = System.Text.Encoding.UTF8;
+        Console.OutputEncoding = Encoding.UTF8;
 
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
+    {
+        return AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
             .UseReactiveUI()
             .LogToTrace();
+    }
 }
