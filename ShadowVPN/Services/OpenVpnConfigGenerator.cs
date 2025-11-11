@@ -50,10 +50,10 @@ public static class OpenVpnConfigGenerator
     private static void SaveToFile(string config)
     {
         var configDir = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "OpenVPN", "config")
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ShadowVPN")
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "shadowvpn");
 
-        var path = Path.Combine(configDir, "client.ovpn");
+        var path = Path.Combine(configDir, "ShadowVPN.ovpn");
 
         Directory.CreateDirectory(configDir);
         File.WriteAllText(path, config, Encoding.UTF8);
