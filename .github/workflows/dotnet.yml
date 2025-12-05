@@ -19,6 +19,15 @@ jobs:
       with:
         dotnet-version: 9.0.x
     - name: Publish
-      run: dotnet publish ShadowVPN.Desktop/ShadowVPN.Desktop.csproj -r win-x64 -p:PublishSingleFile=true --self-contained true -p:IncludeNativeLibrariesForSelfExtract=true -o /app
+      run: | 
+        dotnet publish ShadowVPN.Desktop/ShadowVPN.Desktop.csproj \
+        -r win-x64 \
+        -p:PublishSingleFile=true \
+        --self-contained true \
+        -p:IncludeNativeLibrariesForSelfExtract=true \
+        -o ./publish
+        
+        cd publish
+        zip -r ../ShadowVPN_win-x64.zip .
       
      
