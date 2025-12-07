@@ -26,9 +26,8 @@ jobs:
         --self-contained true \
         -p:IncludeNativeLibrariesForSelfExtract=true \
         -o ./publish
-        cd publish
-        upx ../ShadowVPN_win-x64.exe .
-  
+        upx /publish/ShadowVPN_win-x64.exe .
+        
     -  name: Upload
        uses: actions/upload-artifact@v4
        with:
