@@ -25,13 +25,13 @@ jobs:
         -p:PublishSingleFile=true \
         --self-contained true \
         -p:IncludeNativeLibrariesForSelfExtract=true \
-        -o  /publish
-        upx /publish/ShadowVPN_win-x64.exe .
+        -o publish
+        upx /publish/ShadowVPN.Desktop.exe .
         
     -  name: Upload
        uses: actions/upload-artifact@v4
        with:
-         path: ShadowVPN_win-x64.exe
-         name: ShadowVPN_win-x64
+         path: publish/ShadowVPN.Desktop.exe
+         name: publish/ShadowVPN.exe
    
      
