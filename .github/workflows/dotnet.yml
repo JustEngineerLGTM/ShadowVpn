@@ -18,7 +18,6 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 9.0.x
-        path: ./publish/ShadowVPN_win-x64.zip
     - name: Publish
       run: | 
         dotnet publish ShadowVPN.Desktop/ShadowVPN.Desktop.csproj \
@@ -34,6 +33,7 @@ jobs:
     -  name: Upload
        uses: actions/upload-artifact@v4
        with:
+         path: /publish/ShadowVPN_win-x64.zip
          name: ShadowVPN_win-x64.zip
    
      
