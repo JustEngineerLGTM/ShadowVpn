@@ -59,12 +59,28 @@ jobs:
           find artifacts -type f -name "ShadowVPN.Desktop.exe" -exec cp {} release/ \;
           find artifacts -type f -name "ShadowVPN.Desktop" ! -name "*.exe" -exec cp {} release/ \;
           ls -la release
+      - name: Get previous tag
+        id: prevtag
+        run: |
+          git fetch --tags
 
+          if ! git describe --tags --abbrev=0 >/dev/null 2>&1; then
+            echo "tag=v1.0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          last_tag=$(git describe --tags --abbrev=0)
+          echo "last tag: $last_tag"
+
+          number=$(echo $last_tag | sed 's/v//')
+          new=$(awk -v n=$number 'BEGIN { printf "%.1f", n + 0.1 }')
+          echo "tag=v$new" >> $GITHUB_OUTPUT
+          
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ github.run_number }}
-          name: ShadowVPN Release ${{ github.run_number }}
+          tag_name: ${{ steps.prevtag.outputs.tag }}
+          name: ShadowVPN Release ${{ steps.prevtag.outputs.tag }}
           files: release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
