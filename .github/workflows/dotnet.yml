@@ -1,38 +1,68 @@
-name: .NET
+name: ShadowVPN Multiplatform Build (No ZIP)
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
 
 jobs:
   build:
+    name: Build for ${{ matrix.runtime }}
+    runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        runtime: [ "win-x64", "linux-x64", "osx-arm64" ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Install UPX (only for Windows build)
+        if: matrix.runtime == 'win-x64'
+        run: sudo apt-get update && sudo apt-get install -y upx
+
+      - name: Publish
+        run: |
+          dotnet publish ShadowVPN.Desktop/ShadowVPN.Desktop.csproj \
+            -r ${{ matrix.runtime }} \
+            -p:PublishSingleFile=true \
+            --self-contained true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -o publish/${{ matrix.runtime }}
+
+      - name: Compress EXE with UPX
+        if: matrix.runtime == 'win-x64'
+        run: |
+          upx --best --lzma --force publish/win-x64/ShadowVPN.Desktop.exe
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShadowVPN_${{ matrix.runtime }}
+          path: publish/${{ matrix.runtime }}/
+
+  release:
+    name: Create Release
+    needs: build
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install UPX
-      run: sudo apt-get update && sudo apt-get install -y upx
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 9.0.x
-
-    - name: Publish
-      run: |
-        dotnet publish ShadowVPN.Desktop/ShadowVPN.Desktop.csproj \
-          -r win-x64 \
-          -p:PublishSingleFile=true \
-          --self-contained true \
-          -p:IncludeNativeLibrariesForSelfExtract=true \
-          -o publish
-
-        upx --best --lzma --force publish/ShadowVPN.Desktop.exe
-
-    - name: Upload
-      uses: actions/upload-artifact@v4
-      with:
-        path: publish/ShadowVPN.Desktop.exe
-        name: ShadowVPN_win-x64.exe
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          name: ShadowVPN Release ${{ github.run_number }}
+          files: artifacts/**/* 
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
