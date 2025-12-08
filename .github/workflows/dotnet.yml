@@ -11,7 +11,7 @@ jobs:
 
     strategy:
       matrix:
-        runtime: [ "win-x64", "linux-x64", "osx-arm64" ]
+        runtime: [ "win-x64", "linux-x64" ]
 
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +30,7 @@ jobs:
             -p:IncludeNativeLibrariesForSelfExtract=true \
             -o publish/${{ matrix.runtime }}
 
-      - name: UPX compress (Windows only)
+      - name: UPX compress
         if: matrix.runtime == 'win-x64'
         run: |
           upx --best --lzma --force publish/win-x64/ShadowVPN.Desktop.exe
@@ -39,7 +39,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ShadowVPN_${{ matrix.runtime }}
-          path: publish/${{ matrix.runtime }}/
+          path: |
+            publish/${{ matrix.runtime }}/ShadowVPN.Desktop*
+            !publish/${{ matrix.runtime }}/*.pdb
+            !publish/${{ matrix.runtime }}/*.dll
+            !publish/${{ matrix.runtime }}/*.json
 
   release:
     name: Create Release
@@ -54,11 +58,18 @@ jobs:
         with:
           path: artifacts
 
+      - name: Collect required files
+        run: |
+          mkdir release
+          find artifacts -type f -name "ShadowVPN.Desktop.exe" -exec cp {} release/ \;
+          find artifacts -type f -name "ShadowVPN.Desktop" ! -name "*.exe" -exec cp {} release/ \;
+          ls -la release
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ github.run_number }}
-          name: ShadowVPN client release ${{ github.run_number }}
-          files: artifacts/**/*
+          name: ShadowVPN Release ${{ github.run_number }}
+          files: release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
