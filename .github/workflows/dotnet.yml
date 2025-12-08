@@ -1,6 +1,3 @@
-# This workflow will build a .NET project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
-
 name: .NET
 
 on:
@@ -14,24 +11,28 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Install UPX
+      run: sudo apt-get update && sudo apt-get install -y upx
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 9.0.x
+
     - name: Publish
-      run: | 
+      run: |
         dotnet publish ShadowVPN.Desktop/ShadowVPN.Desktop.csproj \
-        -r win-x64 \
-        -p:PublishSingleFile=true \
-        --self-contained true \
-        -p:IncludeNativeLibrariesForSelfExtract=true \
-        -o publish
-        upx publish/ShadowVPN.Desktop.exe . --force
-        
-    -  name: Upload
-       uses: actions/upload-artifact@v4
-       with:
-         path: publish/ShadowVPN.Desktop.exe
-         name: publish/ShadowVPN.exe
-   
-     
+          -r win-x64 \
+          -p:PublishSingleFile=true \
+          --self-contained true \
+          -p:IncludeNativeLibrariesForSelfExtract=true \
+          -o publish
+
+        upx --best --lzma --force publish/ShadowVPN.Desktop.exe
+
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        path: publish/ShadowVPN.Desktop.exe
+        name: ShadowVPN_win-x64.exe
