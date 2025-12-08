@@ -30,11 +30,6 @@ jobs:
             -p:IncludeNativeLibrariesForSelfExtract=true \
             -o publish/${{ matrix.runtime }}
 
-      - name: UPX compress
-        if: matrix.runtime == 'win-x64'
-        run: |
-          upx --best --force publish/win-x64/ShadowVPN.Desktop.exe
-
       - name: Upload binaries
         uses: actions/upload-artifact@v4
         with:
